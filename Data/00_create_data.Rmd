@@ -1,0 +1,66 @@
+---
+title: "Creating the dataset for predicting stroke occurrence - `r Sys.Date()`"
+author: "Sam Henderson-Palmer"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE, message = FALSE, echo = TRUE, fig.width = 6, fig.align = "center"
+)
+```
+
+# Raw dataset
+
+The raw data can be found on Kaggle [here](https://www.kaggle.com/datasets/aouatifcherdid/healthcare-dataset-stroke-data) which was downloaded as a CSV and stored locally in the `/Data` folder. 
+
+# Missingness
+
+The raw data was first loaded and checked for missing information:
+```{r check_missings}
+# Load packages
+library(tidyverse)
+
+# Read in raw data
+stroke_raw <- read.csv("healthcare-dataset-stroke-data.csv")
+
+# Get overview of data structure, numerical ranges and categories
+str(stroke_raw)
+summary(stroke_raw)
+table(stroke_raw$stroke)
+table(stroke_raw$gender)
+table(stroke_raw$ever_married)
+table(stroke_raw$work_type)
+table(stroke_raw$Residence_type)
+table(stroke_raw$smoking_status)
+
+# Check for NAs
+which(is.na(stroke_raw))
+```
+# Cleaning
+
+Then some data cleaning ahead of modelling, for example changing categorical variables to factors and ensuring our target variable `stroke` is a factor with the first level as event of interest i.e. stroke:
+```{r cleaning}
+stroke_raw %>% 
+  # Convert 1's and 0's for stroke for clarity 
+  mutate(stroke = replace(stroke, stroke == 1, "Stroke"),
+         stroke = replace(stroke, stroke == 0, "No stroke")) %>% 
+  # Convert variable types to categorical
+  mutate(across(c(gender, hypertension, heart_disease, ever_married, 
+                  work_type, Residence_type, smoking_status, stroke), as.factor)) -> stroke
+
+# Reverse order of stroke factor levels so first level is event of interest i.e. stroke
+stroke$stroke <- factor(stroke$stroke, levels = rev(levels(stroke$stroke)))
+
+# Check summary of cleaned data
+summary(stroke)
+str(stroke)
+```
+
+# Saving dataset
+Once we have the final dataset prepared we just need to save it into RDS format which preserves our the datatypes and metadata:
+```{r save_data}
+# Save cleaned dataset
+saveRDS(stroke, file = "stroke_complete.RDS")
+```
+
